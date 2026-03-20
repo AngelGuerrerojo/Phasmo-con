@@ -1,13 +1,35 @@
 import { useState } from "react";
 
-export default function Login({ onSuccess }) {
-  const [form, setForm] = useState({ correo: "", password: "", remember: false });
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
 
-  const onSubmit = (e) => {
+export default function Login({ onSuccess }) {
+  const [form, setForm] = useState({ username: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const onSubmit = async (e) => {
     e.preventDefault();
-    console.table(form);
-    alert("Sesión iniciada correctamente.");
-    if (onSuccess) onSuccess();
+    setError("");
+    setLoading(true);
+    try {
+      const resp = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const contentType = resp.headers.get("content-type") || "";
+      const data = contentType.includes("application/json") ? await resp.json() : await resp.text();
+      if (!resp.ok) {
+        throw new Error(typeof data === "string" ? data : data?.message || "Error al iniciar sesión");
+      }
+      alert(`Sesión iniciada correctamente. Bienvenido, ${data.user.username}`);
+      if (onSuccess) onSuccess(data.user);
+    } catch (err) {
+      setError(err.message);
+      alert(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -20,18 +42,23 @@ export default function Login({ onSuccess }) {
           <p className="text-slate-300">Accede al panel de Phas-con.</p>
         </div>
 
+        {error && (
+          <div className="rounded-xl border border-red-500/60 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-200" htmlFor="correo">
-              Correo
+            <label className="block text-sm font-semibold text-slate-200" htmlFor="username">
+              Usuario
             </label>
             <input
-              id="correo"
-              type="email"
-              value={form.correo}
-              onChange={(e) => setForm({ ...form, correo: e.target.value })}
+              id="username"
+              value={form.username}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
               className="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-500/20"
-              placeholder="tuemail@ejemplo.com"
+              placeholder="tu_usuario"
               required
             />
           </div>
@@ -51,21 +78,12 @@ export default function Login({ onSuccess }) {
             />
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-slate-300">
-            <input
-              type="checkbox"
-              checked={form.remember}
-              onChange={(e) => setForm({ ...form, remember: e.target.checked })}
-              className="h-4 w-4 rounded border-slate-700 bg-slate-900/60 text-cyan-500 focus:ring-cyan-500/40"
-            />
-            Recordarme
-          </label>
-
           <button
             type="submit"
-            className="w-full rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-cyan-500/30 transition hover:-translate-y-0.5 hover:bg-cyan-400"
+            disabled={loading}
+            className="w-full rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-cyan-500/30 transition hover:-translate-y-0.5 hover:bg-cyan-400 disabled:opacity-60"
           >
-            Entrar
+            {loading ? "Procesando..." : "Entrar"}
           </button>
         </form>
       </section>

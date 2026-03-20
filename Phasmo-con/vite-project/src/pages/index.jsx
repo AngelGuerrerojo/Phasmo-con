@@ -14,7 +14,7 @@ export default function Index() {
           Gestiona tu base de Phasmophobia
         </h1>
         <p className="mt-3 text-slate-300">
-          Elige qué administrar: entidades o herramientas del inventario.
+          Elige qué administrar: historial de partidas o herramientas del inventario.
         </p>
 
         <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -22,13 +22,13 @@ export default function Index() {
             to="/crud-fantasmas"
             className="flex h-28 items-center justify-center rounded-2xl border border-slate-700 bg-gradient-to-br from-cyan-500/20 to-slate-900 text-xl font-semibold text-cyan-100 shadow-lg shadow-cyan-500/20 transition hover:-translate-y-1 hover:border-cyan-300 hover:shadow-cyan-500/30"
           >
-            CRUD de Fantasmas
+            Historial de partidas
           </Link>
           <Link
             to="/crud-herramientas"
             className="flex h-28 items-center justify-center rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-800 to-cyan-500/15 text-xl font-semibold text-cyan-100 shadow-lg shadow-cyan-500/15 transition hover:-translate-y-1 hover:border-cyan-300 hover:shadow-cyan-500/30"
           >
-            CRUD de Herramientas
+            CRUD de herramientas
           </Link>
         </div>
       </div>

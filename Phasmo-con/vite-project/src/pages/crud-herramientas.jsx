@@ -1,39 +1,85 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const initial = [
-  { id: 1, nombre: "Libro de escritura", precio: 35, stock: 4 },
-  { id: 2, nombre: "Camara de video", precio: 60, stock: 2 },
-];
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
+
+const emptyForm = {
+  id: null,
+  name: "",
+  tier: 1,
+  cost: 0,
+  max_amount: 1,
+  is_electronic: false,
+  is_consumable: false,
+  description: "",
+};
 
 export default function CrudHerramientas() {
-  const [productos, setProductos] = useState(initial);
-  const [form, setForm] = useState({ id: null, nombre: "", precio: "", stock: "" });
+  const [items, setItems] = useState([]);
+  const [form, setForm] = useState(emptyForm);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const onSubmit = (e) => {
-    e.preventDefault();
-    if (!form.nombre || !form.precio || !form.stock) return;
+  useEffect(() => {
+    loadItems();
+  }, []);
 
-    if (form.id) {
-      setProductos((prev) =>
-        prev.map((p) =>
-          p.id === form.id
-            ? { ...p, ...form, precio: Number(form.precio), stock: Number(form.stock) }
-            : p
-        )
-      );
-    } else {
-      const nextId = Math.max(0, ...productos.map((p) => p.id)) + 1;
-      setProductos((prev) => [
-        ...prev,
-        { ...form, id: nextId, precio: Number(form.precio), stock: Number(form.stock) },
-      ]);
+  async function loadItems() {
+    try {
+      setLoading(true);
+      setError(null);
+      const resp = await fetch(`${API_BASE}/items`);
+      if (!resp.ok) throw new Error("No se pudieron cargar las herramientas");
+      const data = await resp.json();
+      setItems(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-    setForm({ id: null, nombre: "", precio: "", stock: "" });
+  }
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    const payload = {
+      name: form.name,
+      tier: Number(form.tier),
+      cost: Number(form.cost),
+      max_amount: Number(form.max_amount),
+      is_electronic: Boolean(form.is_electronic),
+      is_consumable: Boolean(form.is_consumable),
+      description: form.description,
+    };
+
+    try {
+      setError(null);
+      const url = form.id ? `${API_BASE}/items/${form.id}` : `${API_BASE}/items`;
+      const method = form.id ? "PUT" : "POST";
+      const resp = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!resp.ok) throw new Error("No se pudo guardar el registro");
+      await loadItems();
+      setForm(emptyForm);
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
-  const editRow = (prod) => setForm({ ...prod });
-  const deleteRow = (id) => setProductos((prev) => prev.filter((p) => p.id !== id));
+  const editRow = (item) => setForm({ ...item });
+
+  const deleteRow = async (id) => {
+    try {
+      setError(null);
+      const resp = await fetch(`${API_BASE}/items/${id}`, { method: "DELETE" });
+      if (!resp.ok) throw new Error("No se pudo eliminar el registro");
+      await loadItems();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   return (
     <section className="space-y-4">
@@ -41,8 +87,14 @@ export default function CrudHerramientas() {
         <h2 className="text-2xl font-bold text-cyan-100" style={{ fontFamily: '"Special Elite", monospace' }}>
           CRUD de herramientas
         </h2>
-        <p className="text-slate-300">Crea, edita y elimina equipo del inventario.</p>
+        <p className="text-slate-300">Datos conectados a la tabla <code>items</code> de la base de datos.</p>
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+          {error}
+        </div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <form
@@ -54,28 +106,70 @@ export default function CrudHerramientas() {
               Nombre
               <input
                 className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-500/20"
-                value={form.nombre}
-                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                required
               />
             </label>
             <label className="text-sm text-slate-200">
-              Precio
+              Tier (1-3)
               <input
                 className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-500/20"
-                value={form.precio}
-                onChange={(e) => setForm({ ...form, precio: e.target.value })}
+                value={form.tier}
+                onChange={(e) => setForm({ ...form, tier: e.target.value })}
                 type="number"
-                min="0"
+                min="1"
+                max="3"
+                required
               />
             </label>
             <label className="text-sm text-slate-200">
-              Stock
+              Costo
               <input
                 className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-500/20"
-                value={form.stock}
-                onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                value={form.cost}
+                onChange={(e) => setForm({ ...form, cost: e.target.value })}
                 type="number"
                 min="0"
+                required
+              />
+            </label>
+            <label className="text-sm text-slate-200">
+              Cantidad máxima
+              <input
+                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-500/20"
+                value={form.max_amount}
+                onChange={(e) => setForm({ ...form, max_amount: e.target.value })}
+                type="number"
+                min="1"
+                required
+              />
+            </label>
+            <label className="flex items-center gap-2 text-sm text-slate-200">
+              <input
+                type="checkbox"
+                checked={form.is_electronic}
+                onChange={(e) => setForm({ ...form, is_electronic: e.target.checked })}
+                className="h-4 w-4 rounded border-slate-700 bg-slate-900/60 text-cyan-500 focus:ring-cyan-500/40"
+              />
+              Es electrónico
+            </label>
+            <label className="flex items-center gap-2 text-sm text-slate-200">
+              <input
+                type="checkbox"
+                checked={form.is_consumable}
+                onChange={(e) => setForm({ ...form, is_consumable: e.target.checked })}
+                className="h-4 w-4 rounded border-slate-700 bg-slate-900/60 text-cyan-500 focus:ring-cyan-500/40"
+              />
+              Es consumible
+            </label>
+            <label className="text-sm text-slate-200 sm:col-span-2">
+              Descripción
+              <textarea
+                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-500/20"
+                rows={3}
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
             </label>
           </div>
@@ -90,7 +184,7 @@ export default function CrudHerramientas() {
             {form.id && (
               <button
                 type="button"
-                onClick={() => setForm({ id: null, nombre: "", precio: "", stock: "" })}
+                onClick={() => setForm(emptyForm)}
                 className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-cyan-400 hover:text-cyan-100"
               >
                 Cancelar
@@ -100,35 +194,48 @@ export default function CrudHerramientas() {
         </form>
 
         <div className="rounded-2xl border border-slate-800 bg-[#0f162b] p-5 shadow-lg shadow-cyan-500/10">
-          <h3 className="text-lg font-semibold text-cyan-100">Listado</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-cyan-100">Listado</h3>
+            {loading && <span className="text-xs text-slate-400">Cargando...</span>}
+          </div>
           <div className="mt-3 overflow-x-auto">
             <table className="min-w-full text-left text-sm text-slate-200">
               <thead>
                 <tr className="border-b border-slate-800 bg-slate-900/60 text-xs uppercase tracking-wide text-slate-400">
                   <th className="px-3 py-2">ID</th>
                   <th className="px-3 py-2">Nombre</th>
-                  <th className="px-3 py-2">Precio</th>
-                  <th className="px-3 py-2">Stock</th>
+                  <th className="px-3 py-2">Tier</th>
+                  <th className="px-3 py-2">Costo</th>
+                  <th className="px-3 py-2">Máx.</th>
+                  <th className="px-3 py-2">Electrónica</th>
+                  <th className="px-3 py-2">Consumible</th>
+                  <th className="px-3 py-2">Descripción</th>
                   <th className="px-3 py-2">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {productos.map((prod) => (
-                  <tr key={prod.id} className="border-b border-slate-800/60 hover:bg-slate-900/40">
-                    <td className="px-3 py-2 text-slate-300">{prod.id}</td>
-                    <td className="px-3 py-2 text-slate-100">{prod.nombre}</td>
-                    <td className="px-3 py-2">${prod.precio}</td>
-                    <td className="px-3 py-2">{prod.stock}</td>
+                {items.map((item) => (
+                  <tr key={item.id} className="border-b border-slate-800/60 hover:bg-slate-900/40">
+                    <td className="px-3 py-2 text-slate-300">{item.id}</td>
+                    <td className="px-3 py-2 text-slate-100">{item.name}</td>
+                    <td className="px-3 py-2">{item.tier}</td>
+                    <td className="px-3 py-2">${item.cost}</td>
+                    <td className="px-3 py-2">{item.max_amount}</td>
+                    <td className="px-3 py-2">{item.is_electronic ? "Sí" : "No"}</td>
+                    <td className="px-3 py-2">{item.is_consumable ? "Sí" : "No"}</td>
+                    <td className="px-3 py-2 max-w-xs truncate" title={item.description || ""}>
+                      {item.description}
+                    </td>
                     <td className="px-3 py-2">
                       <div className="flex gap-2">
                         <button
-                          onClick={() => editRow(prod)}
+                          onClick={() => editRow(item)}
                           className="rounded-lg border border-slate-700 px-2 py-1 text-xs font-semibold text-slate-100 transition hover:border-cyan-400"
                         >
                           Editar
                         </button>
                         <button
-                          onClick={() => setConfirmDelete(prod)}
+                          onClick={() => setConfirmDelete(item)}
                           className="rounded-lg border border-red-400/60 px-2 py-1 text-xs font-semibold text-red-200 transition hover:bg-red-500/10"
                         >
                           Borrar
@@ -137,6 +244,13 @@ export default function CrudHerramientas() {
                     </td>
                   </tr>
                 ))}
+                {!loading && items.length === 0 && (
+                  <tr>
+                    <td className="px-3 py-3 text-center text-slate-400" colSpan={9}>
+                      Sin registros todavía.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -148,7 +262,7 @@ export default function CrudHerramientas() {
           <div className="w-full max-w-md rounded-2xl border border-red-500/40 bg-[#0b1020] p-6 shadow-2xl shadow-red-500/30">
             <h3 className="text-xl font-semibold text-red-200">Confirmar eliminación</h3>
             <p className="mt-2 text-sm text-slate-200">
-              ¿Eliminar la herramienta <span className="font-semibold text-red-100">{confirmDelete.nombre}</span>?
+              ¿Eliminar la herramienta <span className="font-semibold text-red-100">{confirmDelete.name}</span>?
             </p>
             <div className="mt-4 flex justify-end gap-2">
               <button
@@ -158,8 +272,8 @@ export default function CrudHerramientas() {
                 Cancelar
               </button>
               <button
-                onClick={() => {
-                  deleteRow(confirmDelete.id);
+                onClick={async () => {
+                  await deleteRow(confirmDelete.id);
                   setConfirmDelete(null);
                 }}
                 className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-red-500/30 transition hover:-translate-y-0.5 hover:bg-red-400"

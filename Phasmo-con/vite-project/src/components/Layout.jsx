@@ -1,23 +1,15 @@
 import { NavLink, Outlet } from "react-router";
-import fondoMenu from "../assets/fondo_menu.jpg";
 
 const links = [
   { to: "/", label: "Inicio" },
-  { to: "/crud-fantasmas", label: "CRUD fantasmas" },
-  { to: "/crud-herramientas", label: "CRUD herramientas" },
+  { to: "/crud-fantasmas", label: "Historial" },
+  { to: "/crud-herramientas", label: "Inventario" },
 ];
 
 export default function Layout() {
   return (
     <div className="min-h-screen flex flex-col bg-[#05070f] text-slate-100">
-      <header
-        className="sticky top-0 z-10 border-b border-slate-800/80 bg-[#0b1020]/90 backdrop-blur"
-        style={{
-          backgroundImage: `linear-gradient(180deg, rgba(5,7,15,0.88), rgba(5,7,15,0.88)), url(${fondoMenu})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center 35%",
-        }}
-      >
+      <header className="sticky top-0 z-10 border-b border-slate-800/80 bg-black/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
           <span className="text-lg font-bold tracking-tight text-cyan-300" style={{ fontFamily: '"Special Elite", monospace' }}>
             Phas-con menu
