@@ -11,7 +11,11 @@ const authController = require('./src/controller/auth');
 
 app.use(express.json());
 app.use(cors({
-    origin: ['http://localhost:5000', 'http://localhost:5173'],
+    origin: [
+        'http://localhost:5000', 
+        'http://localhost:5173', 
+        'https://phasmocon.onrender.com' 
+    ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
 }));
 
