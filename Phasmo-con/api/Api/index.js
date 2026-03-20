@@ -63,6 +63,14 @@ app.listen(3000, () => {
     listRoutes();
 });
 
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: "¡Servidor de Phasmophobia conectado con éxito!",
+    status: "Online",
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.use((req, res) => {
     console.log(`404 handler reached for ${req.method} ${req.url}`);
     res.status(404).json({ error: "Not Found", path: req.url });
